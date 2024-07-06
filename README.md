@@ -34,8 +34,8 @@ int main(){
         }
         return sum;
     };
-    std::future<int> res1=threadPool.submitTask(func,1,100);
-    std::future<int> res2=threadPool.submitTask(func,100,200);
+    std::future<int> res1=threadPool.submit(func,1,100);
+    std::future<int> res2=threadPool.submit(func,100,200);
     std::cout<<"Parallel results: "<<res1.get()+res2.get()<<std::endl;
     int sum=0;
     for(int i = 1; i < 200; ++i) {
