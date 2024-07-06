@@ -41,7 +41,7 @@ class Thread{
 public:
     using ThreadFunc=std::function<void(int)>;
     Thread(ThreadFunc func)
-            :threadId_(threadIdInPool_++),
+            :threadId_(baseId_++),
              func_(func){}
     ~Thread()=default;
     void start(){
@@ -52,13 +52,13 @@ public:
         return threadId_;
     }
 private:
-    static uint32_t threadIdInPool_;
+    static uint32_t baseId_;
     uint32_t threadId_;
     ThreadFunc func_;
 };
 
 //静态成员类外初始化
-uint32_t Thread::threadIdInPool_=0;
+uint32_t Thread::baseId_=0;
 
 class ThreadPool{
     /*
@@ -92,9 +92,7 @@ public:
         started_= false;
         threads_.clear();
         std::unique_lock<std::mutex> lck(mtxQue_);
-        std::cout<<"threadsEmpty_ before"<<std::endl;
         threadsEmpty_.wait(lck,[&]()->bool{return taskCount_==0;});
-        std::cout<<"threadsEmpty_ end"<<std::endl;
     }
     void setInitThreadSize(size_t size){
         /*
@@ -139,7 +137,7 @@ public:
     }
 
     template<typename Func,typename... Args>
-    auto submitTask(Func&& func,Args&&... args)-> std::future<decltype(func(args...))>{
+    auto submit(Func&& func,Args&&... args)-> std::future<decltype(func(args...))>{
         /*
          * 向线程池中提交任务,并获取任务的返回值
          * 如果如果任务队列已满,等待一个超时时间
@@ -154,7 +152,7 @@ public:
         std::unique_lock<std::mutex> lck(mtxQue_);
         if(!notFull_.wait_for(lck,std::chrono::seconds(SUBMIT_TASK_TIME_OUT),[&]()->bool{
             return taskCount_<taskSizeThreshold_;})){
-            std::cout<<"task submit fail"<<std::endl;
+            std::cerr<<"task submit fail"<<std::endl;
             std::packaged_task<RType()> failTask([]()->RType{ return RType();});
             failTask();
             return failTask.get_future();
