@@ -92,7 +92,7 @@ public:
         started_= false;
         threads_.clear();
         std::unique_lock<std::mutex> lck(mtxQue_);
-        threadsEmpty_.wait(lck,[&]()->bool{return taskCount_==0;});
+        threadsEmpty_.wait(lck,[&]()->bool{return threadSize_==0;});
     }
     void setInitThreadSize(size_t size){
         /*
@@ -207,7 +207,7 @@ private:
                 while (taskCount_==0){
                     if(mode_==Mode::MODE_CACHED){
                         if(std::cv_status::timeout==notEmpty_.wait_for(lck,std::chrono::seconds(1))){
-                            if(!started_){
+                            if(!started_&&taskCount_==0){
                                 if(taskCount_==0){
                                     threadSize_--;
                                     idleThreadSize_--;
@@ -225,7 +225,7 @@ private:
                         }
                     }else{
                         if(std::cv_status::timeout==notEmpty_.wait_for(lck,std::chrono::seconds(1))){
-                            if(!started_){
+                            if(!started_&&taskCount_==0){
                                 threadSize_--;
                                 idleThreadSize_--;
                                 if(threadSize_==0){
@@ -249,7 +249,7 @@ private:
                 task();
                 idleThreadSize_++;
             }
-            if(!started_){
+            if(!started_&&taskCount_==0){
                 if(taskCount_==0){
                     threadSize_--;
                     idleThreadSize_--;
